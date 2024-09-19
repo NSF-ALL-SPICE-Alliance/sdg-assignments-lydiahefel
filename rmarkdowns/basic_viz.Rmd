@@ -224,3 +224,13 @@ Countries that fall in the higher end of the Goal 4 spectrum belong to the OECD 
 
 #### <span style="color: red;">Challenge 3</span>
 Make a histogram for a different SDG score. Then, fill by region. In a couple of sentences, describe any interesting trends or what you notice from your new histogram.
+
+```{r}
+ggplot(sdr_data, aes(x = goal_10_score, fill = regions_used_for_the_sdr)) +
+  geom_histogram(color = "black")
+```
+Preface:
+Sustainable Development Goal 10 is Reduced Inequalities.
+
+Interpretation:
+A majority of countries on the higher end of the SDG 10 histogram generally come from the OECD and E. Europe & C. Asia regions, while a majority of countries on the lower end generally come from the LAC and Sub-Saharan Africa regions. In comparison to the SDG 4 histogram, the regions seem to be much less polarized, meaning that some countries from each region can be found towards opposite sides as the majority of countries from those regions. Although higher scores tend to have higher counts, a decent amount of low scores of mid-to-high counts, which shows a need for improve in reduced inequalities across most, if not all, regions.

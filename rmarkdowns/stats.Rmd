@@ -29,6 +29,7 @@ library(ggpubr)
 library(janitor)
 library(ggcorrplot)
 library(vembedr)
+library(plotly)
 ```
 
 
@@ -197,13 +198,13 @@ To circle back and reinforce how the linear regression (line drawn through our s
   - What does this look like on scatter plot?
   
 ```{r, warning=FALSE, message=FALSE}
-ggplot(sdr_data, aes(x = goal_12_score, 
-                     y = goal_9_score)) +
+sdg10_sdg5_scatterplot <- ggplot(sdr_data, aes(x = goal_10_score, y = goal_5_score, label = country)) +
   geom_point() +
   geom_smooth() +
-  stat_cor() +
-  theme_minimal() 
+  theme_minimal() +
+  labs(title = "Distributions of SDG 10 Scores and SDG 5 Scores by Country", x = "SDG 10 Score", y = "SDG 5 Score")
 
+ggplotly(sdg10_sdg5_scatterplot)
 ```
 
 ### <span style="color: red;">Challenge 1</span>
@@ -219,4 +220,10 @@ ggplot(sdr_data, aes(x = goal_12_score,
       
       - are there any points that don't follow the trend (outliers)
         
-        - which country(s) are outliers?
+        - which country(s) are outliers
+        
+Preface:
+Sustainable Development Goal 10 is Reduced Inequalities and Sustainable Development Goal 5 is Gender Equality.
+        
+Interpretation:
+There is a very weak positive correlation between SDG 10 and SDG 5, which gives the idea that SDG 10 and SDG 5 are less dependent upon one another. This correlation proves that the inequalities within countries are less likely to be gender-based. Due to the independence of the two goals, there are many points that do not follow the trend. Most notably, Yemen is the greatest outlier with an SDG 10 score of 66.3 and an SDG 5 score of 13.1. Yemen has the lowest SDG 5 score, and is the most apparent outlier, but Namibia has the lowest SDG 10 score of 5.5 (this excludes South Africaʻs SDG 10 score of 0.0 due to limited information). There are little to no countries that scored very low in both goals, but quite a few countries that scored very high in both goals, which makes sense because those countries to have higher overall scores.

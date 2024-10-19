@@ -1,0 +1,163 @@
+---
+title: 'SDG Analytics in R: Final Project'
+author: "Lydia Hefel"
+date: "2024-10-16"
+output: html_document
+---
+
+### Libraries
+
+```{r, message = FALSE}
+library(here)
+library(tidyr)
+library(readr)
+library(janitor)
+library(dplyr)
+library(ggpubr)
+library(ggplot2)
+library(plotly)
+library(SDGsR)
+library(tibble)
+```
+
+### Read & Clean Data
+
+```{r, message = FALSE}
+
+sidsdata <- read_csv(here("data/SDR-for-SIDS/SIDS-SDR-2023-data.csv"))
+
+sidsdata <- sidsdata %>% 
+  clean_names()
+
+samoadata <- sidsdata %>%
+  filter(country == "Samoa")
+
+samoa1 <- samoadata %>%
+  select(starts_with("col_sdg")) %>%
+  pivot_longer(cols = everything(), names_to = "sdg", values_to = "status") %>%
+  mutate(sdg = sub("^col_", "", sdg))
+
+samoa2 <- samoadata %>%
+  select(starts_with("n_sdg")) %>%
+  pivot_longer(cols = everything(), names_to = "sdg", values_to = "normalized_score") %>%
+  mutate(sdg = sub("^n_", "", sdg))
+
+samoa3 <- samoadata %>%
+  select(starts_with("sdg")) %>%
+  pivot_longer(cols = everything(), names_to = "sdg", values_to = "indicator_score")
+
+sdgdata <- samoa1 %>%
+  left_join(samoa2, by = "sdg") %>% 
+  left_join(samoa3, by = "sdg") 
+
+sdg_order <- c("sdg1_wpc", "sdg2_obesity", "sdg3_lifee", "sdg4_second",
+  "sdg5_parl", "sdg6_sanita", "sdg7_elecac", "sdg8_unemp",
+   "sdg9_intuse", "sdg10_gini", "sdg11_pm25", "sdg12_msw",
+   "sdg13_co2gcp", "sdg14_cleanwat", "sdg15_redlist",
+   "sdg16_cpi", "sdg17_statperf")
+status_order <- c("green", "yellow", "orange", "red")
+
+sdgdata <- sdgdata %>%
+  mutate(sdg = factor(sdg, levels = sdg_order)) %>%
+  mutate(status = factor(status, levels = status_order)) %>% 
+  rownames_to_column(var = "id")
+
+colors <- SDGsR::SDGs_cols(paste0("Goal", sdgdata$id))
+colors_sdg <- setNames(colors, sdgdata$sdg)
+colors_status <- setNames(colors, sdgdata$status)
+```
+
+## Samoa - Country of Focus
+
+Samoa is a country in the Pacific Islands, it is recognized as a Small Island Developing State (SIDS). The two main islands of Samoa, Upolu and Savai'i, are surrounded by the smaller uninhabited islands of Samoa. As a part of Polynesia, the people of Samoa maintain a strong cultural and traditional way of life. Based on the SIDS Sustainable Development Report (SDR) Samoa has an overall Sustainable Development Goal (SDG) score of 67.9. This project, and following visualizations, will highlight areas of optimal sufficiency, and note certain areas of needed improvement.
+
+### Data Visualizations
+
+#### Visual 1 - Samoa - Normalized SDG Scores
+
+```{r}
+sdg_normal_scores <- ggplot(sdgdata, aes(x = sdg, y = normalized_score, fill = sdg)) +
+  geom_col() +
+  scale_fill_manual(values = colors_sdg) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Sustainable Development Goals",
+       y = "Normalized Score",
+       fill = "Sustainable Development Goals",
+       title = "Samoa - Normalized SDG Scores")
+
+ggplotly(sdg_normal_scores)
+```
+
+Interpretation:
+
+The visual above, Samoa - Normalized SDG Scores, is a column plot that compares the normalized scores of the 17 SDGs to one another, based on the country of Samoa. The seeming lack of data for the normalized SDG 2 score draws a lot of attention. However, Samoa has a normalized SDG 2 score of 0.0 as there are major challenges that remain with a prevalence of obesity. Another attention grabber is the normalized SDG 5 score, at only 13.6, referring to the country's gender equality with a focus on the lack of female representation in parliament. The normalized SDG 15 and SDG 16 scores are the only other scores below 50, sitting at scores of 39.3 (SDG 15) and 39.7 (SDG 16). There is much needed improvement on Samoa's Red List of threatened species for Life on Land (SDG 15), as well as Samoa's homicide and child labor rates for Peace, Social Justice, and Strong Institutions (SDG 16). Out of all 17 SDGs, there are seven that have normalized scores of over 75. In particular, there are two SDGs with normalized scores of 100, those being SDG 4 and SDG 7. Samoa has sufficient secondary completion and primary enrollment rates when looking at Quality Education (SDG 4), as well as a very high percentage of the population having access to electricity when looking at Affordable and Clean Energy (SDG 7). How might these normalized SDG scores compare to the color status of each SDG?
+
+#### Visual 2 - Samoa - SDG Color Status
+
+```{r}
+sdg_status <- ggplot(sdgdata, aes(x = status, fill = sdg)) +
+  geom_bar() +
+  scale_fill_manual(values = colors_sdg) +
+  labs(x = "Color Status",
+       y = "Count",
+       fill = "Sustainable Development Goals",
+       title = "Samoa - SDG Color Status")
+ggplotly(sdg_status)
+```
+
+Interpretation:
+
+The visual above, Samoa - SDG Color Status, is a bar plot of the color each of 17 SDGs individually received for their status, based on the country of Samoa. The green color status means that the SDG was achieved, whereas red color status means that there are major challenges remaining for that SDG. The green color status has the most SDGs, while only a few SDGs have red color status. The three SDGs with red color status are SDG 2, SDG 5, and SDG 15, which were among the low scoring SDGs, and need major improvement. The six SDGs with green color status were SDG 1, SDG 12, SDG 13, SDG 4, SDG 6, and SDG 7, which were high scoring and have nearly achieved their intended goal. Based on the previous visualization, these findings line up well with the higher scores being related to green status, and lower scores being related to red status. However, although having one of the highest normalized SDG scores of 94.4, SDG 11 resides in the yellow category with challenges remaining, which doesn't seem to line up with the trend of the other SDGs. Could the SDG indicator score be a major influence on the normalized SDG score, and be the reason for the given color status?
+
+#### Visual 3 - Samoa - SDG Indicator Scores
+
+```{r}
+sdg_indicate_scores <- ggplot(sdgdata, aes(x = sdg, y = indicator_score, fill = sdg)) +
+  geom_col() +
+  scale_fill_manual(values = colors_sdg) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Sustainable Development Goals",
+       y = "Indicator Score",
+       fill = "Sustainable Development Goals",
+       title = "Samoa - SDG Indicator Scores")
+
+ggplotly(sdg_indicate_scores)
+```
+
+Interpretation:
+
+The visual above, Samoa - SDG Indicator Scores, is a column plot that compares the indicator scores of each of the 17 SDGs to one another, based on the country of Samoa. A clear observation recognizes the lack of data for SDG 16 (Peace, Justice, and Strong Institutions), there is limited SDG data for Samoa as a whole, and thus, there is no data on the indicator score for SDG 16. To continue with the observation of SDG 11 from the previous visualization, the yellow color status had piqued interest, despite having the fourth highest normalized SDG scores at 94.4. Although, now being able to observe the indicator score of SDG 11, more information is added to the ongoing hypothesis as to why SDG 11 had yellow color status rather than green color status. The indicator score of only 10.829 seems to have a major impact on the overall normalized SDG score. Turning the attention back to the current visualization, some more noticeable observations include very low indicator scores of SDG 1, SDG 12, SDG 13, and SDG 15. These low scores would be expected of SDG 15 (Life on Land), as it had red color status and a low normalized SDG score. However, the dramatically low indicator scores for SDG 1 (No Poverty), SDG 12 (Responsible Consumption and Production), and SDG 13 (Climate Action) were very unexpected as they all had green color status and normalized SDG scores of over 90. If this is the case, what is the correlation between the normalized SDG scores and the SDG indicator scores and the SDG color status?
+
+#### Visual 4a - Samoa - Normalized SDG Scores vs SDG Indicator Scores
+
+```{r}
+sdg_normal_indicate_scores <- ggplot(sdgdata, aes(y = indicator_score, x = normalized_score, color = sdg, fill = status)) +
+  geom_point() +
+  scale_color_manual(values = colors_sdg) +
+  scale_fill_manual(values = colors_status) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(y = "Indicator Score",
+       x = "Normalized Score",
+       color = "Sustainable Development Goals",
+       fill = "& Color Status",
+       title = "Samoa - Normalized SDG Scores vs SDG Indicator Scores")
+
+ggplotly(sdg_normal_indicate_scores)
+```
+
+#### Visual 4b - Samoa - Normalized SDG Scores vs SDG Indicator Scores
+
+```{r}
+ggplot(sdgdata, aes(y = indicator_score, x = normalized_score)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  stat_cor(output.type = "text") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(y = "Indicator Score",
+       x = "Normalized Score",
+       title = "Samoa - Normalized SDG Scores vs SDG Indicator Scores")
+```
+
+Interpretation:
+
+The two visuals above, Samoa - Normalized SDG Scores vs SDG Indicator Scores, are both scatter plots that compare the normalized scores of each SDG to the indicator scores of each SDG, based on the country of Samoa. The first visual (4a) is an interactive plot that includes the corresponding SDG and color status of each point. The second visual (4b) has the correlation plotted and printed on the visual. Due to limitations of the `ggplotly` function, a clear and readable visualization that included characteristics of both visuals was not able to be produced. Looking at visual 4a, the color status of each SDG seemed to have some continutity of which scores recieved which color status, but there were too many outliers and too much variation for the correlation to be significant. One of the most notable comparative observations is the cluster of points with very high normalized SDG scores and very high SDG indicator scores versus the cluster of points with very high normalized SDG scores and very low SDG indicator scores. There was another cluster of points in the middle that seemed to follow a trend of having similar normalized SDG scores and SDG indicator scores. This sparked the idea of plotting the correlation between the two, in an attempt to see if the trend was evidence of a significant correlation. However, after plotting the correlation in visual 4b, the R value of 0.21 proves a weak positive correlation between the normalized SDG scores and SDG indicator scores. Therefore, the ongoing hypothesis that SDG indicator scores are a major influence on the normalized SDG scores and the color status of each SDG cannot be proven based on the given data.
